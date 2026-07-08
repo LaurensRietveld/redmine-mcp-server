@@ -752,7 +752,14 @@ async def get_redmine_issue(
                 agile = _fetch_agile_data(issue_id)
                 result.update(agile)
             except Exception:
-                pass  # Silently omit agile fields on any failure
+                # Agile fields are best-effort, but log the cause so a
+                # misconfigured/unreachable Agile endpoint is diagnosable
+                # instead of silently producing an issue with no agile data.
+                # (Common cause: the OAuth token lacks the view_agile_queries
+                # scope -> Redmine 403 on /issues/<id>/agile_data.json.)
+                logging.warning(
+                    "Failed to fetch agile data for issue %s", issue_id, exc_info=True
+                )
 
         return result
     except Exception as e:
